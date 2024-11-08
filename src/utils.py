@@ -1,5 +1,7 @@
 import psutil
 import platform
+import re
+from datetime import datetime
 
 def format_bytes(bytes):
     """Convert bytes to human readable format"""
@@ -9,20 +11,35 @@ def format_bytes(bytes):
         bytes /= 1024
 
 def get_processor_name():
-    """Get the processor name"""
+    """Get detailed processor information"""
     if platform.system() == "Windows":
         return platform.processor()
-    elif platform.system() == "Darwin":
+    elif platform.system() == "Darwin":  # macOS
+        command = 'sysctl -n machdep.cpu.brand_string'
         return platform.processor()
     elif platform.system() == "Linux":
-        command = "cat /proc/cpuinfo"
-        return platform.processor()
-    return "Unknown processor"
+        with open('/proc/cpuinfo') as f:
+            for line in f:
+                if "model name" in line:
+                    return re.sub(".*model name.*:", "", line, 1).strip()
+    return platform.processor()
 
 def get_network_usage():
-    """Get network usage statistics"""
+    """Get current network usage statistics"""
     network = psutil.net_io_counters()
     return {
         'bytes_sent': format_bytes(network.bytes_sent),
-        'bytes_recv': format_bytes(network.bytes_recv)
+        'bytes_recv': format_bytes(network.bytes_recv),
+        'packets_sent': network.packets_sent,
+        'packets_recv': network.packets_recv
+    }
+
+def get_system_info():
+    """Get general system information"""
+    return {
+        'system': platform.system(),
+        'release': platform.release(),
+        'version': platform.version(),
+        'machine': platform.machine(),
+        'processor': get_processor_name()
     }
